@@ -1,16 +1,27 @@
 import numpy as np
 
+TARGET_IMAGE_PATH = "images/astro_compressed.jpg"
+BEST_FILE_LOCATION = "data/data.json"
+
+
 """ pygame parameters """
 WINDOW_COLOR = (0, 0, 0)
-WINDOW_TITLE = "Evolved Automata"
+WINDOW_TITLE = "Neural Cellular Automata"
 WINDOW_DIMS = (1550, 850)
 MAX_FRAME_RATE = 600
 
+""" graphics parameters """
+
+
+""" evolution paramaters """
+PARRELEL_SIMULATIONS = 400 # automatas running in parralel
+TICKS_PER_GENERATION = 80  # frames every generation
+
+
 """ cellular automata parameters """
-AUTOMATA_DEPTH = 4 # the amount of third dimensional layers per sim
-TICKS_PER_GEN = 100 # frames every generation
-ANALYZE_INDEX = 0  # index used to calculate score
-PARRELEL_SIMULATIONS = 200
+AUTOMATA_DEPTH = 4     # the amount of third dimensional layers per sim
+ANALYZE_LAYER  = 0      # layer used to calculate score
+
 
 """ evolution settings """
 B_MUTATION_RATE  = 15#%
@@ -25,6 +36,7 @@ L1_W_RANGE = 0.04 # range of weight values allowed to initilise layer 1
 L2_W_RANGE = 0.04 # range of weight values allowed to initilise layer 2
 L1_B_RANGE = 0.0 # range of bias values allowed to initilise layer 1
 L2_B_RANGE = 0.0 # range of bias values allowed to initilise layer 2
+
 
 SOBEL_X = np.array([
     [-1, 0, 1],

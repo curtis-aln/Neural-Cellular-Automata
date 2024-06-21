@@ -14,23 +14,6 @@ import numpy as np
 from operator import itemgetter
 from scipy.signal import convolve2d
 
-"""def mutate(parent_weights: np.ndarray, weights: np.ndarray):
-    # Create a mask of random True/False values based on mutation rate
-    mask = np.random.uniform(0, 1, size=weights.shape) < MUTATION_RATE
-    
-    # Generate mutation values within the specified range
-    mutations = np.random.uniform(-MUTATION_RANGE, MUTATION_RANGE, size=weights.shape)
-    
-    # Calculate mutated values using the parent weights and mutation mask
-    mutated_values = parent_weights + (mask * mutations)
-    
-    # Apply clamping between 0 and 1 to the mutated values
-    mutated_values = np.clip(mutated_values, -1, 1)
-    
-    # Update weights with the mutated values within the mask
-    weights[mask] = mutated_values[mask]
-"""
-
 
 def mutate_array(array, mutation_rate_percent, mutation_range_perent):
     # Convert change and tweak percentages to decimals
@@ -99,7 +82,7 @@ class EvolutionManager:
 
 
     def calc_grid_diff(self) -> None:
-        self.grid_diff = self.desired_image - np.transpose(self.best_grid_saved, (2, 0, 1))[ANALYZE_INDEX]
+        self.grid_diff = self.desired_image - np.transpose(self.best_grid_saved, (2, 0, 1))[ANALYZE_LAYER]
     
     
 
@@ -111,20 +94,24 @@ class EvolutionManager:
             return (color, 0, 0) if state < 0 else (0, color, 0)
         
         color = max(0, min(1, state)) * 255
-
         return (color, color, color)
     
+
     def render_desired(self, rect : pg.Rect) -> None: 
         self.render_automata2(self.desired_image, rect)
+
 
     def render_current_best_gen(self, rect : pg.Rect) -> None: 
         self.render_automata(self.automatas[0].grid, rect)
 
+
     def render_difference_grid(self, rect : pg.Rect) -> None:
         self.render_automata2(self.grid_diff, rect, False)
 
+
     def render_previous_best_attempt(self, rect : pg.Rect) -> None: 
         self.render_automata(self.best_grid_saved, rect)
+
     
     def render_automata(self, grid_pattern : np.ndarray, rect : pg.Rect, render_mode = True) -> None:
         start_pos = pg.Vector2(rect.x, rect.y)
@@ -133,7 +120,7 @@ class EvolutionManager:
 
         for x in range(len(grid_pattern)):
             for y in range(len(grid_pattern[x])):
-                color = self.state_to_color(transposed[ANALYZE_INDEX][x][y], render_mode)
+                color = self.state_to_color(transposed[ANALYZE_LAYER][x][y], render_mode)
                 rect = (start_pos.x + x * size.x, start_pos.y + y * size.y, 
                         size.x, size.y)
                 pg.draw.rect(self.render_surface, color, rect)
@@ -182,7 +169,7 @@ class EvolutionManager:
         func = lambda automata: automata.update_all_states()
         list(map(func, self.automatas))
        
-        if (self.ticks >= TICKS_PER_GEN):
+        if (self.ticks >= TICKS_PER_GENERATION):
             self.start_new_generation()
             self.reset_automatas()
 
@@ -260,7 +247,7 @@ class EvolutionManager:
     
 
     def find_sorted_indexes(self) -> tuple[np.ndarray, np.ndarray]:
-        calc_score = lambda idx: np.sum((self.desired_image - np.transpose(self.automatas[idx].grid, (2, 0, 1))[ANALYZE_INDEX])**2)
+        calc_score = lambda idx: np.sum((self.desired_image - np.transpose(self.automatas[idx].grid, (2, 0, 1))[ANALYZE_LAYER])**2)
         scores = np.array(list(map(calc_score, range(PARRELEL_SIMULATIONS))))
 
         # Create an array of tuples containing index and final score for each automata

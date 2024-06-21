@@ -3,21 +3,24 @@ import pygame as pg
 from settings import *
 
 from evolution_manager import EvolutionManager
-from text_drawer import TextDrawer
+from utils.text_drawer import TextDrawer
 
 
 class Simulation:
     def __init__(self) -> None:
+        # user input variables
         self.running = True
         self.paused = False
-        self.disable_rendering = False
+        self.rendering = True
 
+        # pygame parameters
         self.window = pg.display.set_mode(WINDOW_DIMS, pg.NOFRAME)
         self.clock = pg.time.Clock()
+        
+        self.evo_manager = EvolutionManager(self.window, TARGET_IMAGE_PATH)
 
+        # graphics initialization
         self.text_renderer = TextDrawer(self.window)
-        self.evo_manager = EvolutionManager(self.window, "images/astro_compressed.jpg")
-
         self.init_bounds()
     
 
@@ -55,34 +58,38 @@ class Simulation:
             self.event_manager()
             self.update()
 
-            if not self.disable_rendering:
+            if self.rendering:
                 self.render()
 
 
     def event_manager(self) -> None:
         for event in pg.event.get():
             if event.type == pg.KEYDOWN:
-                if event.key == pg.K_ESCAPE:
-                    self.running = False
-                
-                elif event.key == pg.K_SPACE:
-                    self.paused = not self.paused
-                
-                elif event.key == pg.K_o:
-                    self.disable_rendering = not self.disable_rendering
+                self.key_press_event(event)
+    
 
-                elif event.key == pg.K_s:
-                    self.evo_manager.save_best("data.json")
-                
-                elif event.key == pg.K_l:
-                    self.evo_manager.load_best("data.json")
-    
-    
+    def key_press_event(self, event):
+        if event.key == pg.K_ESCAPE:
+            self.running = False
+        
+        elif event.key == pg.K_SPACE:
+            self.paused = not self.paused
+        
+        elif event.key == pg.K_o:
+            self.rendering = not self.rendering
+
+        elif event.key == pg.K_s:
+            self.evo_manager.save_best(BEST_FILE_LOCATION)
+        
+        elif event.key == pg.K_l:
+            self.evo_manager.load_best(BEST_FILE_LOCATION)
+
+
     def update(self) -> None:
         if not self.paused:
             self.evo_manager.tick()
-
-
+    
+    
     def render(self) -> None:
         self.window.fill(WINDOW_COLOR)
         self.display_on_screen_info()
@@ -116,11 +123,8 @@ class Simulation:
         self.text_renderer.draw_text(f"frame rate: {round(self.clock.get_fps(), 2)} fps",           (50, 70))
         self.text_renderer.draw_text(f"CA dims: {dims[0]}x{dims[1]}x{dims[2]} ({all_cells} total)", (50, 90))
         self.text_renderer.draw_text(f"Simulations: {PARRELEL_SIMULATIONS}",                        (50, 110))
-        self.text_renderer.draw_text(f"generation {e.gen} (tick {e.ticks} / {TICKS_PER_GEN})",      (50, 130))
+        self.text_renderer.draw_text(f"generation {e.gen} (tick {e.ticks} / {TICKS_PER_GENERATION})",      (50, 130))
         self.text_renderer.draw_text(f"average of 10%: {avg_of_10}",                                 (50, 150))
         self.text_renderer.draw_text(f"average of 50%: {avg_of_50}",                                 (50, 170))
         #self.text_renderer.draw_text(f"score range: {score_range}",                                 (50, 190))
         self.text_renderer.draw_text(f"best score: {best_score} ({percentage_best}%)",              (50, 190))
-        blue = (30, 90, 230)
-        thickness = 6
-        border_curve = 5

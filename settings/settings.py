@@ -19,7 +19,7 @@ TICKS_PER_GENERATION = 80  # frames every generation
 
 
 """ cellular automata parameters """
-AUTOMATA_DEPTH = 4     # the amount of third dimensional layers per sim
+AUTOMATA_DEPTH = 8     # the amount of third dimensional layers per sim
 ANALYZE_LAYER  = 0      # layer used to calculate score
 
 
@@ -53,3 +53,11 @@ SOBEL_Z = np.array([
 # making them 3d matricies
 SOBEL_X = np.transpose(SOBEL_X[None,:, :], (1, 2, 0))
 SOBEL_Y = np.transpose(SOBEL_Y[None,:, :], (1, 2, 0))
+
+
+SAVE_FREQ = 5
+PRINT_FREQ = 5
+CHANGE_TARGETS_FREQ = 50
+SAVE_FILE_POPULATION = ''#'data/neat_population.pkl'
+SAVE_FILE_BEST_GENOME = 'data/best_genome.pkl'
+CONFIG_PATH = "settings/config-feedforward"

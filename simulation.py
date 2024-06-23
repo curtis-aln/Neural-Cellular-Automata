@@ -1,8 +1,8 @@
 import pygame as pg
 
-from settings import *
+from settings.settings import *
 
-from evolution_manager import EvolutionManager
+from population import EvolutionManager
 from utils.text_drawer import TextDrawer
 
 
@@ -89,7 +89,7 @@ class Simulation:
         if not self.paused:
             self.evo_manager.tick()
     
-    
+
     def render(self) -> None:
         self.window.fill(WINDOW_COLOR)
         self.display_on_screen_info()

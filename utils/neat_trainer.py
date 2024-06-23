@@ -9,15 +9,18 @@ from neat.population import Population
 
 
 class NeatFileManager:
-    def __init__(self, file_config_path = "", population_save_file = "", best_genome_save_file = "") -> None:
+    def __init__(self, config_file_path = "", population_save_file = "", best_genome_save_file = "") -> None:
         # the path to the config file containing the information about the NEAT algorithm.
-        self.file_config_path = file_config_path
+        self.config_file_path = config_file_path
         
         # contains the whole population
         self.population_save_file = population_save_file
 
         # only contains the best genome of the population
         self.best_genome_save_file = best_genome_save_file
+
+        if config_file_path != "":
+            self.config = self.get_config(config_file_path)
     
 
     def get_config(self, file_config_path : str):
@@ -55,9 +58,6 @@ class NeatFileManager:
 class NeatTrainer(NeatFileManager):
     def __init__(self, eval_genomes_func = None, config_file_path="", population_save_file="", best_genome_save_file="") -> None:
         super().__init__(config_file_path, population_save_file, best_genome_save_file)
-
-        if config_file_path != "":
-            self.config = self.get_config(config_file_path)
 
         # the function used to determine the fitness of the agents in the population. one generation
         self.eval_genomes_func = eval_genomes_func

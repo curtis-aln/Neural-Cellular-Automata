@@ -7,35 +7,20 @@ BEST_FILE_LOCATION = "data/data.json"
 """ pygame parameters """
 WINDOW_COLOR = (0, 0, 0)
 WINDOW_TITLE = "Neural Cellular Automata"
-WINDOW_DIMS = (1550, 850)
+WINDOW_DIMS = (1350, 800)
 MAX_FRAME_RATE = 600
 
-""" graphics parameters """
-
-
-""" evolution paramaters """
-PARRELEL_SIMULATIONS = 400 # automatas running in parralel
-TICKS_PER_GENERATION = 80  # frames every generation
 
 
 """ cellular automata parameters """
-AUTOMATA_DEPTH = 8     # the amount of third dimensional layers per sim
+AUTOMATA_DEPTH = 6     # the amount of third dimensional layers per sim
 ANALYZE_LAYER  = 0      # layer used to calculate score
 
 
 """ evolution settings """
-B_MUTATION_RATE  = 15#%
-B_MUTATION_RANGE = 15#%
-W_MUTATION_RATE  = 15#%
-W_MUTATION_RANGE = 15#%
-
-UNMUTATED_PERCENT   = 10 # percent of the population that go mutated
-UNDISCARDED_PERCENT = 50 # percent of the population that isn't discarded
-
-L1_W_RANGE = 0.04 # range of weight values allowed to initilise layer 1
-L2_W_RANGE = 0.04 # range of weight values allowed to initilise layer 2
-L1_B_RANGE = 0.0 # range of bias values allowed to initilise layer 1
-L2_B_RANGE = 0.0 # range of bias values allowed to initilise layer 2
+POPULATION_SIZE = 20
+GENERATIONS = 100
+ITERATIONS = 30
 
 
 SOBEL_X = np.array([

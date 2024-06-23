@@ -2,8 +2,64 @@ import pygame as pg
 
 from settings.settings import *
 
-from population import EvolutionManager
+from population import EvolutionManager, get_desired_and_init_states
 from utils.text_drawer import TextDrawer
+from utils.neat_trainer import NeatFileManager
+from scipy.ndimage import zoom
+from automata import CellularAutomata
+
+
+def array_to_colored_surface(array, target_width, target_height):
+    # Normalize the pixel values to the range [0, 255]
+    normalized_image = (array * 255).astype(np.uint8)
+
+    # Create a color gradient (e.g., magenta to blue)
+    def color_gradient(value):
+        magenta = np.array([255, 0, 255])
+        blue = np.array([0, 0, 255])
+        return (magenta * (1 - value) + blue * value).astype(np.uint8)
+
+    # Apply the color gradient to the normalized image
+    colored_image = np.array([color_gradient(value / 255) for value in normalized_image.flatten()]).reshape(
+        (normalized_image.shape[0], normalized_image.shape[1], 3))
+
+    # Compute the zoom factors
+    zoom_factor_y = target_height / colored_image.shape[1]
+    zoom_factor_x = target_width / colored_image.shape[0]
+
+    # Resize the colored image using the computed zoom factors
+    resized_colored_image = zoom(colored_image, (zoom_factor_y, zoom_factor_x, 1), order=1)
+
+    # Create a surface from the colored image
+    surface = pg.surfarray.make_surface(resized_colored_image)
+    return surface
+
+
+# The run best automata class will take the best preforming automata from the save file and bring it into an
+# interactive pygame simulation where the user can play with and test the results from training.
+class RunBestAutomata(NeatFileManager):
+    def __init__(self, file_config_path = "", population_save_file = "", best_genome_save_file = "") -> None:
+        super().__init__(file_config_path, population_save_file, best_genome_save_file)
+
+        # loading data from files
+        self.best_genome = self.get_best_genome_from_file()
+        self.neural_network = self.genome_to_network(self.best_genome)
+        
+        self.desired_image, self.image_shape, self.init_grid_states = get_desired_and_init_states()
+
+        self.automata = CellularAutomata(self.init_grid_states)
+    
+
+    def render(self, surface) -> None:
+        bounds = (0, 0, 1280, 720)
+
+        automata_surface = array_to_colored_surface(self.automata.get_image(), bounds[2], bounds[3])
+        surface.blit(automata_surface, bounds)
+    
+
+    def update(self) -> None:
+        self.automata.update_all_states(self.neural_network)
+
 
 
 class Simulation:
@@ -17,40 +73,10 @@ class Simulation:
         self.window = pg.display.set_mode(WINDOW_DIMS, pg.NOFRAME)
         self.clock = pg.time.Clock()
         
-        self.evo_manager = EvolutionManager(self.window, TARGET_IMAGE_PATH)
-
         # graphics initialization
         self.text_renderer = TextDrawer(self.window)
-        self.init_bounds()
-    
 
-    # calculating the bounderies for the "desired" cellular pattern and the current cellular pattern
-    def init_bounds(self):
-        dims = self.evo_manager.grid_shape
-        max_size = int(500 / max(dims))
-        size = pg.Vector2(max_size * dims[0], max_size * dims[1])
-        buffer = 50
-
-        half_size = size/2
-
-        # target image (remains the same the whole simulation)
-        start_a = pg.Vector2(WINDOW_DIMS[0] - size.x - buffer, buffer)
-        self.target_grid_bounds = pg.Rect(start_a.x, start_a.y, size.x, size.y)
-
-        # the current cell states of the best simulation in the generation
-        start_b = pg.Vector2(start_a.x, start_a.y + size.y + buffer)
-        self.current_grid_bounds = pg.Rect(start_b.x, start_b.y, size.x, size.y)
-
-        # the final state of the best preforming simulation last gen
-        y = start_a.y + half_size.y + buffer/2
-        self.best_grid_bounds = pg.Rect(buffer, y, half_size.x, half_size.y)
-
-        # subtracting the best_grid by the target_grid to display the difference needed
-        self.difference_bounds = pg.Rect(buffer*1.5 + half_size.x, y, half_size.x, half_size.y)
-        
-        # for the current_grid layer1: Red, layer2: Green, layer3: Blue, layer4: Alpha. then stack them all together
-        self.psudo_3d_bounds = pg.Rect(buffer, y + buffer/2 + half_size.y, half_size.x, half_size.y)
-
+        self.run_best = RunBestAutomata(CONFIG_PATH, SAVE_FILE_POPULATION, SAVE_FILE_BEST_GENOME)
     
     def run(self) -> None:
         while self.running:
@@ -58,8 +84,7 @@ class Simulation:
             self.event_manager()
             self.update()
 
-            if self.rendering:
-                self.render()
+            self.render()
 
 
     def event_manager(self) -> None:
@@ -78,53 +103,15 @@ class Simulation:
         elif event.key == pg.K_o:
             self.rendering = not self.rendering
 
-        elif event.key == pg.K_s:
-            self.evo_manager.save_best(BEST_FILE_LOCATION)
-        
-        elif event.key == pg.K_l:
-            self.evo_manager.load_best(BEST_FILE_LOCATION)
-
 
     def update(self) -> None:
         if not self.paused:
-            self.evo_manager.tick()
+            self.run_best.update()
     
 
     def render(self) -> None:
         self.window.fill(WINDOW_COLOR)
-        self.display_on_screen_info()
 
-        self.evo_manager.render_desired(self.target_grid_bounds)
-        self.evo_manager.render_current_best_gen(self.current_grid_bounds)
-        self.evo_manager.render_previous_best_attempt(self.best_grid_bounds)
-        self.evo_manager.render_difference_grid(self.difference_bounds)
-
-        self.evo_manager.render_psudo3d_view(self.evo_manager.automatas[0].grid, self.psudo_3d_bounds)
+        self.run_best.render(self.window)
 
         pg.display.flip()
-    
-
-    def display_on_screen_info(self) -> None:
-        # general statistics and info
-        e = self.evo_manager
-        dims = self.evo_manager.grid_shape
-        all_cells = dims[0]*dims[1]*dims[2]
-        cells = dims[1]*dims[2]
-        worst_possible_score = cells
-
-        avg_of_10 = round(e.get_avg_of_10(), 3)
-        avg_of_50 = round(e.get_avg_of_50(), 3)
-        #score_range = round(e.calc_score_range())
-
-        best_score = round(e.get_best_score(), 3)
-        percentage_best = round(best_score / worst_possible_score * 100)
-
-        self.text_renderer.draw_text(WINDOW_TITLE, (50, 50))
-        self.text_renderer.draw_text(f"frame rate: {round(self.clock.get_fps(), 2)} fps",           (50, 70))
-        self.text_renderer.draw_text(f"CA dims: {dims[0]}x{dims[1]}x{dims[2]} ({all_cells} total)", (50, 90))
-        self.text_renderer.draw_text(f"Simulations: {PARRELEL_SIMULATIONS}",                        (50, 110))
-        self.text_renderer.draw_text(f"generation {e.gen} (tick {e.ticks} / {TICKS_PER_GENERATION})",      (50, 130))
-        self.text_renderer.draw_text(f"average of 10%: {avg_of_10}",                                 (50, 150))
-        self.text_renderer.draw_text(f"average of 50%: {avg_of_50}",                                 (50, 170))
-        #self.text_renderer.draw_text(f"score range: {score_range}",                                 (50, 190))
-        self.text_renderer.draw_text(f"best score: {best_score} ({percentage_best}%)",              (50, 190))

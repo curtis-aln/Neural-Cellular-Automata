@@ -17,6 +17,25 @@ from utils.colorama import print_col
 from neat.nn import FeedForwardNetwork as Network
 from neat.genome import DefaultGenome as Genome
 
+def load_image(filepath : str) -> np.ndarray:
+    img = Image.open(filepath).rotate(90, expand=True) # loading image the right way around
+    return np.array(img, dtype=np.float32) / 255       # normalized between 0 & 1
+
+def get_desired_and_init_states() -> tuple[np.ndarray]:
+    desired_image = load_image(TARGET_IMAGE_PATH)
+    image_shape = desired_image.shape
+    grid_shape = np.array([image_shape[0], image_shape[1], AUTOMATA_DEPTH])
+
+    # calculating the initial grid state
+    init_grid_states = np.zeros(grid_shape)
+    idx_a = int(grid_shape[0]/2)
+    idx_b = int(grid_shape[1]/2)
+    init_grid_states[idx_a][idx_b][0] = 1
+
+    return (desired_image, image_shape, init_grid_states)
+
+
+
 
 # The AutomataPopulation is a class that applies the NEAT algorithm to a population.
 class AutomataPopulation(NeatTrainer):
@@ -24,16 +43,7 @@ class AutomataPopulation(NeatTrainer):
         # general purpose NEAT class used to train th
         super().__init__(self.eval_genomes, CONFIG_PATH, SAVE_FILE_POPULATION, SAVE_FILE_BEST_GENOME)
 
-        # calculating the shape of the automatas
-        self.desired_image = self.load_image(TARGET_IMAGE_PATH)
-        image_shape = self.desired_image.shape
-        self.grid_shape = np.array([image_shape[0], image_shape[1], AUTOMATA_DEPTH])
-
-        # calculating the initial grid state
-        self.init_grid_states = np.zeros(self.grid_shape)
-        idx_a = int(self.grid_shape[0]/2)
-        idx_b = int(self.grid_shape[1]/2)
-        self.init_grid_states[idx_a][idx_b][0] = 1
+        self.desired_image, self.image_shape, self.init_grid_states = get_desired_and_init_states()
 
         # creating the population
         self.automatas = [CellularAutomata(self.init_grid_states) for _ in range(population_size)]
@@ -58,7 +68,7 @@ class AutomataPopulation(NeatTrainer):
         # running the generation
         for automata, genome in zip(self.automatas, genomes):
             net = Network.create(genome[1], config)
-            ITERATIONS = 50
+    
             genome[1].fitness = automata.run(ITERATIONS, net, self.desired_image)
 
         # logistics, saving, changing targets, and printing data is managed
@@ -116,23 +126,6 @@ class AutomataPopulation(NeatTrainer):
             self.save_data()
         
         return (best_network, best_genome)
-
-
-    def load_image(self, filepath) -> np.ndarray:
-        img = Image.open(filepath).rotate(90, expand=True) # loading image the right way around
-        return np.array(img, dtype=np.float32) / 255       # normalized between 0 & 1
-    
-
-# The run best automata class will take the best preforming automata from the save file and bring it into an
-# interactive pygame simulation where the user can play with and test the results from training.
-class RunBestAutomata(NeatFileManager):
-    def __init__(self, file_config_path = "", population_save_file = "", best_genome_save_file = "") -> None:
-        super().__init__(file_config_path, population_save_file, best_genome_save_file)
-
-        # loading data from files
-        self.best_genome = self.get_best_genome_from_file()
-        self.best_automata_network = self.genome_to_network(self.best_genome)
-    
 
 
 
@@ -225,14 +218,4 @@ class EvolutionManager:
     def get_avg_of_50(self) -> float: return self.avg_of_50_score
     def get_best_score(self) -> float: return self.best_score
 
-
-    def tick(self):
-        self.ticks += 1
-
-        func = lambda automata: automata.update_all_states()
-        list(map(func, self.automatas))
-       
-        if (self.ticks >= TICKS_PER_GENERATION):
-            self.start_new_generation()
-            self.reset_automatas()
     

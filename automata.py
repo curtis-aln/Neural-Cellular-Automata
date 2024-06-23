@@ -4,12 +4,14 @@ from scipy.signal import convolve
 from settings.settings import *
 
 from neat.nn import FeedForwardNetwork as Network
+from copy import deepcopy
 
 
 class CellularAutomata:
     def __init__(self, inital_grid : np.ndarray) -> None:    
-        self.initial_states = inital_grid.copy()
-        self.grid = inital_grid.copy()
+        self.initial_states = deepcopy(inital_grid)
+        self.grid = deepcopy(inital_grid)
+    
         self.score = 0
 
 
@@ -35,7 +37,7 @@ class CellularAutomata:
     
 
     def run(self, iterations : int, neural_network : Network, desired_image : np.ndarray) -> float:
-        self.grid = self.initial_states.copy()
+        self.grid = deepcopy(self.initial_states)
 
         # running the automata for the given number of iterations
         for i in range(iterations):

@@ -27,6 +27,6 @@ if __name__ == "__main__":
     image_folder = "images"
     image_name = "astro.jpg"
     image_path = os.path.join(image_folder, image_name)
-    compress_factor = 120  # Change this value to adjust compression
+    compress_factor = 50  # Change this value to adjust compression
 
     compress_and_convert_to_bw(image_path, compress_factor)

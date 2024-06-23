@@ -1,6 +1,6 @@
 from population import AutomataPopulation as Population
 
-POPULATION_SIZE = 100
+POPULATION_SIZE = 20
 GENERATIONS = 100
 
 if __name__ == '__main__':

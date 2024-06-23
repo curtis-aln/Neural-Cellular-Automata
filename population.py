@@ -7,6 +7,8 @@ from PIL import Image
 
 from automata import CellularAutomata
 from scipy.signal import convolve2d
+from scipy.ndimage import zoom
+
 
 from settings.settings import *
 from utils.neat_trainer import NeatTrainer, NeatFileManager
@@ -51,12 +53,13 @@ class AutomataPopulation(NeatTrainer):
     def eval_genomes(self, genomes, config):
         # The neat algorithm can decide to increase or decrease the population if seen fit.
         while (len(genomes) > len(self.automatas)):
-            self.automatas.append(CellularAutomata(self.grid_shape))
+            self.automatas.append(CellularAutomata(self.init_grid_states))
 
         # running the generation
         for automata, genome in zip(self.automatas, genomes):
             net = Network.create(genome[1], config)
-            genome[1].fitness = automata.run(50, net, self.desired_image)
+            ITERATIONS = 50
+            genome[1].fitness = automata.run(ITERATIONS, net, self.desired_image)
 
         # logistics, saving, changing targets, and printing data is managed
         gen = self.get_generation()
@@ -64,10 +67,34 @@ class AutomataPopulation(NeatTrainer):
             self.save_data()
             print_col("Data Saved", 'green')
 
+        self.save_image()
+    
+
+    def save_image(self):
         # getting the final image from the best automata and writing it to a png file
         best_automata = self.get_best_automata()
         final_image = best_automata.get_image()
-        pg.image.save(pg.surfarray.make_surface(final_image), f"best_automata_gen_{gen}.png")
+
+        # Normalize the pixel values to the range [0, 255]
+        normalized_image = (final_image * 255).astype(np.uint8)
+
+        # Desired resolution
+        target_height = 1080
+        target_width = 1920
+
+        # Compute the zoom factors
+        zoom_factor_y = target_height / normalized_image.shape[1]
+        zoom_factor_x = target_width / normalized_image.shape[0]
+
+        resized_image = zoom(normalized_image, (zoom_factor_y, zoom_factor_x), order=0)
+
+        # Convert the normalized 2D array to a 3D array if it's grayscale
+        if resized_image.ndim == 2:
+            resized_image = np.stack((resized_image,) * 3, axis=-1)
+
+        # Create a surface and save it as a PNG file
+        surface = pg.surfarray.make_surface(resized_image)
+        pg.image.save(surface, f"best/best_automata.png")
     
 
     def get_best_automata(self) -> CellularAutomata:
@@ -87,7 +114,7 @@ class AutomataPopulation(NeatTrainer):
         print_col("would you like to save the training data? (y/n) ", "cyan")
         if input(">>> ") == "y":
             self.save_data()
-
+        
         return (best_network, best_genome)
 
 
